@@ -1,0 +1,14 @@
+llm:
+  agent_model:
+    name: "gpt-4"
+    provider: "openai"
+  reviser_model:
+    name: "claude-3-sonnet-20240229"
+    provider: "anthropic"
+
+reviser:
+  max_iterations: 3
+
+logging:
+  level: INFO
+  format: '%(asctime)s - %(levelname)s - %(message)s'
