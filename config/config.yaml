@@ -5,10 +5,27 @@ llm:
   reviser_model:
     name: "claude-3-sonnet-20240229"
     provider: "anthropic"
+  evaluator_model:
+    name: "gpt-4o-mini"
+    provider: "openai"
 
 reviser:
   max_iterations: 3
+  target_score: 91
 
 logging:
   level: INFO
   format: '%(asctime)s - %(levelname)s - %(message)s'
+
+evaluation:
+  aspects:
+    - relevance
+    - coherence
+    - accuracy
+  score_range:
+    min: 0
+    max: 100
+
+openai:
+  temperature: 0.7
+  max_tokens: 1500

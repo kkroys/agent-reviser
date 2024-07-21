@@ -4,3 +4,6 @@ langchain-openai==0.1.17
 pyyaml==6.0.1
 python-dotenv==1.0.1
 langsmith==0.1.93
+yaml~=0.2.5
+aiohttp~=3.9.5
+pydantic~=2.8.2
