@@ -1,6 +1,6 @@
 import logging
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from langchain_core.output_parsers import StrOutputParser
 from config import config
 from prompts import FEEDBACK_PROMPT, REVISION_PROMPT
@@ -23,9 +23,16 @@ class RevisionResult:
     final_output: str
     revision_history: List[str]
     evaluation_history: List[AggregatedEvaluationResult]
+    final_suggestions: List[str]
+    history_log: List[Dict[str, Any]]
+
 
 class Reviser:
-    def __init__(self, agent_llm, reviser_llm, evaluator: MultiEvaluator, max_iterations: int = config['reviser']['max_iterations']):
+    def __init__(self,
+                 agent_llm,
+                 reviser_llm,
+                 evaluator: MultiEvaluator,
+                 max_iterations: int = config['reviser']['max_iterations']):
         self.agent_llm = agent_llm
         self.reviser_llm = reviser_llm
         self.evaluator = evaluator
@@ -40,6 +47,8 @@ class Reviser:
         revision_history = [current_output]
         evaluation_history = []
         previous_output = None
+        final_suggestions = []
+        history_log = []
 
         for i in range(self.max_iterations):
             try:
@@ -56,6 +65,18 @@ class Reviser:
                 logger.info(f"Aspect scores: {evaluation.aspect_scores}")
                 logger.info(f"Combined reasoning: {evaluation.combined_reasoning}")
 
+                history_log.append({
+                    "iteration": i + 1,
+                    "evaluation": {
+                        "overall_score": evaluation.overall_score,
+                        "aspect_scores": evaluation.aspect_scores,
+                        "reasoning": evaluation.combined_reasoning
+                    },
+                    "feedback": "",
+                    "suggestions": [],
+                    "revised_output": ""
+                })
+
                 if evaluation.overall_score >= config['reviser']['target_score']:
                     logger.info(f"Target score reached. Stopping revision process.")
                     break
@@ -70,7 +91,9 @@ class Reviser:
                     "evaluation_combined_reasoning": evaluation.combined_reasoning
                 })
 
-                current_output = self.revision_chain.invoke({
+                history_log[-1]["feedback"] = feedback
+
+                revision_result = self.revision_chain.invoke({
                     "system_prompt": revision_input.system_prompt,
                     "user_input": revision_input.user_input,
                     "current_output": current_output,
@@ -81,12 +104,52 @@ class Reviser:
                     "feedback": feedback
                 })
 
+                logger.info(f"Revision result: {revision_result}")
+
+                suggestions, revised_output = self.parse_revision_result(revision_result)
+                logger.info(f"Parsed suggestions: {suggestions}")
+                logger.info(f"Revised output: {revised_output}")
+
+                history_log[-1]["suggestions"] = suggestions
+                history_log[-1]["revised_output"] = revised_output
+
+                if revised_output:
+                    current_output = revised_output
                 previous_output = current_output
                 revision_history.append(current_output)
+                final_suggestions = suggestions  # Store the latest suggestions
                 logger.info(f"Revision iteration {i + 1} complete")
 
             except Exception as e:
                 logger.error(f"Error during revision iteration {i + 1}: {str(e)}")
+                logger.error(f"Current output: {current_output}")
+                logger.error(f"Revision result: {revision_result}")
                 break
 
-        return RevisionResult(final_output=current_output, revision_history=revision_history, evaluation_history=evaluation_history)
+        return RevisionResult(final_output=current_output,
+                              revision_history=revision_history,
+                              evaluation_history=evaluation_history,
+                              final_suggestions=final_suggestions,
+                              history_log=history_log)
+
+    @staticmethod
+    def parse_revision_result(revision_result: str) -> (List[str], str):
+        suggestions = []
+        revised_output = ""
+        current_section = None
+
+        for line in revision_result.split('\n'):
+            line = line.strip()
+            if line.startswith('REVISED OUTPUT:'):
+                current_section = 'revised_output'
+                continue
+            elif line.startswith('SUGGESTIONS:'):
+                current_section = 'suggestions'
+                continue
+
+            if current_section == 'suggestions':
+                suggestions.append(line)
+            elif current_section == 'revised_output':
+                revised_output += line + '\n'
+
+        return suggestions, revised_output.strip()

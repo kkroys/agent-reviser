@@ -10,3 +10,4 @@ build/
 *.egg-info/
 .ipynb_checkpoints
 task_writer_test_input.py
+output/
