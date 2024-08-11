@@ -125,8 +125,10 @@ class MultiEvaluator:
         aspect_scores = {evaluator.evaluation_aspect: result.score for evaluator, result in
                          zip(self.evaluators, results)}
         overall_score = mean(aspect_scores.values())
-        combined_reasoning = "\n".join(
-            f"{evaluator.evaluation_aspect}: {result.reasoning}" for evaluator, result in zip(self.evaluators, results))
+        combined_reasoning = "\n\n".join(
+            f"{evaluator.evaluation_aspect.capitalize()} Reasoning:\n{result.reasoning}"
+            for evaluator, result in zip(self.evaluators, results)
+        )
 
         return AggregatedEvaluationResult(
             overall_score=overall_score,

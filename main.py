@@ -7,8 +7,7 @@ from evaluator import OpenAIEvaluator, MultiEvaluator
 from reviser import Reviser, RevisionInput
 from task_writer_test_input import TASK_WRITER_SYSTEM_PROMPT, TASK_WRITER_INITIAL_INPUT, TASK_WRITER_INITIAL_OUTPUT
 from tracing import tracer
-from output_handler import write_output_files
-
+from output_handler import write_output_files, write_structured_output
 
 logging.basicConfig(level=config['logging']['level'], format=config['logging']['format'])
 logger = logging.getLogger(__name__)
@@ -53,15 +52,8 @@ async def main():
     logger.info("Final Revised Output:")
     logger.info(result.final_output)
 
-    logger.info("Revision History:")
-    for i, (revision, evaluation) in enumerate(zip(result.revision_history, result.evaluation_history)):
-        logger.info(f"Revision {i}:")
-        logger.info(revision)
-        logger.info(f"Overall Evaluation Score: {evaluation.overall_score}")
-        logger.info(f"Aspect Scores: {evaluation.aspect_scores}")
-        logger.info(f"Combined Reasoning: {evaluation.combined_reasoning}")
-
     write_output_files(result.final_output, result.history_log, debug=config.get('DEBUG', False))
+    write_structured_output(result.history_log)
 
 
 if __name__ == "__main__":
