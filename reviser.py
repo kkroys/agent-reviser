@@ -99,8 +99,8 @@ class Reviser:
                                  revision_input: RevisionInput,
                                  current_output: str,
                                  previous_output: Optional[str],
-                                 iteration: int
-                                 ) -> IterationResult:
+                                 iteration: int) -> IterationResult:
+
         evaluation = await self._evaluate(
             system_prompt=revision_input.system_prompt,
             user_input=revision_input.user_input,
@@ -162,8 +162,7 @@ class Reviser:
                         system_prompt: str,
                         user_input: str,
                         current_output: str,
-                        previous_output: Optional[str]
-                        ) -> Optional[EvaluationResult]:
+                        previous_output: Optional[str]) -> Optional[EvaluationResult]:
         if not self.evaluator:
             return None
         result = await self.evaluator.evaluate(system_prompt, user_input, current_output, previous_output)
@@ -178,8 +177,7 @@ class Reviser:
                             user_input: str,
                             current_output: str,
                             previous_output: Optional[str],
-                            evaluation: Optional[EvaluationResult]
-                            ) -> str:
+                            evaluation: Optional[EvaluationResult]) -> str:
         feedback_input = {
             "system_prompt": system_prompt,
             "user_input": user_input,
@@ -200,8 +198,7 @@ class Reviser:
                             current_output: str,
                             previous_output: Optional[str],
                             evaluation: Optional[EvaluationResult],
-                            feedback: str
-                            ) -> str:
+                            feedback: str) -> str:
         revision_input = {
             "system_prompt": system_prompt,
             "user_input": user_input,
