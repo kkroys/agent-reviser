@@ -39,7 +39,10 @@ class OpenAIEvaluator(BaseEvaluator):
         self.api_base = api_base
         self.logger = logging.getLogger(__name__)
 
-    async def evaluate(self, system_prompt: str, user_input: str, current_output: str,
+    async def evaluate(self,
+                       system_prompt: str,
+                       user_input: str,
+                       current_output: str,
                        previous_output: Optional[str] = None) -> EvaluationResult:
         evaluation_context = {
             "aspect": self.evaluation_aspect,
@@ -64,7 +67,7 @@ class OpenAIEvaluator(BaseEvaluator):
                     result = await response.json()
 
             response_text = result['choices'][0]['message']['content']
-            return self.parse_evaluation_response(response_text)
+            return await self.parse_evaluation_response(response_text)
         except Exception as e:
             self.logger.error(f"Error during evaluation: {str(e)}")
             raise
@@ -81,7 +84,7 @@ class OpenAIEvaluator(BaseEvaluator):
         }
 
     @staticmethod
-    def parse_evaluation_response(response_text: str) -> EvaluationResult:
+    async def parse_evaluation_response(response_text: str) -> EvaluationResult:
         score_match = re.search(r'(?i)score:?\s*(\d+)', response_text)
         score = int(score_match.group(1)) if score_match else 0
 
@@ -99,7 +102,7 @@ class OpenAIEvaluator(BaseEvaluator):
 
 class AggregatedEvaluationResult(BaseModel):
     overall_score: float
-    aspect_scores: dict[str, int]
+    aspect_scores: Dict[str, int]
     combined_reasoning: str
 
 

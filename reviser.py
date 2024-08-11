@@ -1,25 +1,23 @@
 import logging
-from dataclasses import dataclass
 from typing import List, Optional, Dict, Any
 from langchain_core.output_parsers import StrOutputParser
 from config import config
 from prompts import FEEDBACK_PROMPT, REVISION_PROMPT
 from tracing import tracer
+from pydantic import BaseModel
 from evaluator import MultiEvaluator, AggregatedEvaluationResult
 
 logging.basicConfig(level=config['logging']['level'], format=config['logging']['format'])
 logger = logging.getLogger(__name__)
 
 
-@dataclass
-class RevisionInput:
+class RevisionInput(BaseModel):
     system_prompt: str
     user_input: str
     initial_output: Optional[str] = None
 
 
-@dataclass
-class RevisionResult:
+class RevisionResult(BaseModel):
     final_output: str
     revision_history: List[str]
     evaluation_history: List[AggregatedEvaluationResult]
@@ -81,7 +79,7 @@ class Reviser:
                     logger.info(f"Target score reached. Stopping revision process.")
                     break
 
-                feedback = self.feedback_chain.invoke({
+                feedback = await self.feedback_chain.ainvoke({
                     "system_prompt": revision_input.system_prompt,
                     "user_input": revision_input.user_input,
                     "current_output": current_output,
@@ -93,7 +91,7 @@ class Reviser:
 
                 history_log[-1]["feedback"] = feedback
 
-                revision_result = self.revision_chain.invoke({
+                revision_result = await self.revision_chain.ainvoke({
                     "system_prompt": revision_input.system_prompt,
                     "user_input": revision_input.user_input,
                     "current_output": current_output,
@@ -106,7 +104,7 @@ class Reviser:
 
                 logger.info(f"Revision result: {revision_result}")
 
-                suggestions, revised_output = self.parse_revision_result(revision_result)
+                suggestions, revised_output = await self.parse_revision_result(revision_result)
                 logger.info(f"Parsed suggestions: {suggestions}")
                 logger.info(f"Revised output: {revised_output}")
 
@@ -123,7 +121,6 @@ class Reviser:
             except Exception as e:
                 logger.error(f"Error during revision iteration {i + 1}: {str(e)}")
                 logger.error(f"Current output: {current_output}")
-                logger.error(f"Revision result: {revision_result}")
                 break
 
         return RevisionResult(final_output=current_output,
@@ -133,7 +130,7 @@ class Reviser:
                               history_log=history_log)
 
     @staticmethod
-    def parse_revision_result(revision_result: str) -> (List[str], str):
+    async def parse_revision_result(revision_result: str) -> (List[str], str):
         suggestions = []
         revised_output = ""
         current_section = None

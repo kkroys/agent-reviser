@@ -10,7 +10,7 @@ llm:
     provider: "openai"
 
 reviser:
-  max_iterations: 3
+  max_iterations: 2
   target_score: 94
 
 logging:

@@ -14,22 +14,22 @@ logging.basicConfig(level=config['logging']['level'], format=config['logging']['
 logger = logging.getLogger(__name__)
 
 
-def get_llm(model_config: dict, api_key: str):
-    if model_config['provider'] == 'openai':
-        return ChatOpenAI(model=model_config['name'], api_key=api_key)
-    elif model_config['provider'] == 'anthropic':
-        return ChatAnthropic(model=model_config['name'], api_key=api_key)
+def get_llm(config: dict, model_type: str):
+    model_config = config['llm'][model_type]
+    provider = model_config['provider']
+
+    if provider == 'openai':
+        return ChatOpenAI(model=model_config['name'], api_key=config['env']['OPENAI_API_KEY'])
+    elif provider == 'anthropic':
+        return ChatAnthropic(model=model_config['name'], api_key=config['env']['ANTHROPIC_API_KEY'])
     else:
-        raise ValueError(f"Unsupported model provider: {model_config['provider']}")
+        raise ValueError(f"Unsupported model provider: {provider}")
 
 
 @tracer(run_type="chain", name="Main Revision Pipeline")
 async def main():
-    agent_model_config = config['llm']['agent_model']
-    reviser_model_config = config['llm']['reviser_model']
-
-    agent_llm = get_llm(agent_model_config, config['env']['OPENAI_API_KEY'])
-    reviser_llm = get_llm(reviser_model_config, config['env']['OPENAI_API_KEY'])
+    agent_llm = get_llm(config, 'agent_model')
+    reviser_llm = get_llm(config, 'reviser_model')
 
     evaluators = [
         OpenAIEvaluator(
